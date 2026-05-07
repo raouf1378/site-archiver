@@ -1,0 +1,47 @@
+name: Archive Page (with assets)
+
+on:
+  workflow_dispatch:
+    inputs:
+      url:
+        description: "Full URL to archive (e.g., https://example.com/page)"
+        required: true
+        type: string
+      output_name:
+        description: "Name of artifact zip"
+        required: false
+        default: "site-archive"
+        type: string
+
+jobs:
+  archive:
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Install wget
+        run: sudo apt-get update && sudo apt-get install -y wget
+
+      - name: Run archive
+        env:
+          URL: ${{ inputs.url }}
+          OUT_NAME: ${{ inputs.output_name }}
+        run: |
+          chmod +x scripts/archive.sh
+          ./scripts/archive.sh "$URL" "archive-output"
+
+      - name: Zip result
+        run: |
+          set -e
+          cd archive-output
+          cd ..
+          zip -r "${{ inputs.output_name }}.zip" "archive-output"
+
+      - name: Upload artifact
+        uses: actions/upload-artifact@v4
+        with:
+          name: ${{ inputs.output_name }}
+          path: ${{ inputs.output_name }}.zip
+          if-no-files-found: error
